@@ -1,0 +1,9 @@
+lib/
+node_modules/
+.eslintrc.json
+babel.config.js
+jest.config.ts
+yarn.lock
+tsconfig.json
+typedoc.json
+docs/
