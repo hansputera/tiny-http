@@ -3,9 +3,9 @@
 Simple HTTP Client built with zero dependency.
 
 ### Installation
-> npm install https://github.com/hansputera/tiny-http
+> npm install hanif-tiny-http
 
-> yarn add https://github.com/hansputera/tiny-http
+> yarn add hanif-tiny-http
 
 ### Basic usage
 

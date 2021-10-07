@@ -1,6 +1,6 @@
 {
   "name": "hanif-tiny-http",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "My Tiny Http Client",
   "main": "./dist/index.js",
   "author": "Hanif",
@@ -30,5 +30,10 @@
     "build": "rimraf dist && tsc --build tsconfig.json",
     "lint": "eslint . --fix",
     "docs": "typedoc"
+  },
+  "types": "./dist/index.d.ts",
+  "readme": "https://github.com/hansputera/tiny-http/blob/master/README.md",
+  "repository": {
+	  "url": "https://github.com/hansputera/tiny-http"
   }
 }
