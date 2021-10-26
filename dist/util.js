@@ -1,4 +1,7 @@
-export class Util {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Util = void 0;
+class Util {
     static parseProtocol(url) {
         if (!this.validateURL)
             return undefined;
@@ -32,3 +35,4 @@ export class Util {
         }
     }
 }
+exports.Util = Util;

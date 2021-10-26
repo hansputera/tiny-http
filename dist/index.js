@@ -1,3 +1,23 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,15 +27,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import * as http from 'node:http';
-import * as https from 'node:https';
-import { PassThrough } from 'node:stream';
-import { Util } from './util';
-export class Response {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tinyHttp = exports.TinyHttpClient = exports.getPureRequest = exports.Response = void 0;
+const http = __importStar(require("node:http"));
+const https = __importStar(require("node:https"));
+const node_stream_1 = require("node:stream");
+const util_1 = require("./util");
+class Response {
     constructor(res) {
         this.res = res;
         this.data = Buffer.alloc(0);
-        this.stream = new PassThrough();
+        this.stream = new node_stream_1.PassThrough();
     }
     addData(data) {
         this.data = Buffer.concat([this.data, data]);
@@ -47,11 +69,12 @@ export class Response {
         return this.res.url || '';
     }
 }
-export const getPureRequest = (url, options = Util.jsonDefault({
+exports.Response = Response;
+const getPureRequest = (url, options = util_1.Util.jsonDefault({
     headers: {},
     method: 'GET',
 }), handleResponse) => {
-    const protocol = Util.parseProtocol(url);
+    const protocol = util_1.Util.parseProtocol(url);
     if (!protocol)
         throw new TypeError('Invalid URL');
     if (typeof options.json === 'object')
@@ -65,13 +88,14 @@ export const getPureRequest = (url, options = Util.jsonDefault({
     request.end();
     return request;
 };
-export class TinyHttpClient {
+exports.getPureRequest = getPureRequest;
+class TinyHttpClient {
     constructor(clientOptions) {
         this.clientOptions = clientOptions;
     }
     get(url, opts) {
         var _a;
-        if (opts === void 0) { opts = Util.jsonDefault({
+        if (opts === void 0) { opts = util_1.Util.jsonDefault({
             method: 'GET',
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
         }); }
@@ -79,14 +103,14 @@ export class TinyHttpClient {
             return yield new Promise((resolve, reject) => {
                 if (url.startsWith('/'))
                     throw new TypeError('URL must-not start with slash');
-                const completeUrl = Util.resolveUri(url, this);
-                getPureRequest(completeUrl, opts, (res) => this.handleMessage(res, resolve, reject));
+                const completeUrl = util_1.Util.resolveUri(url, this);
+                (0, exports.getPureRequest)(completeUrl, opts, (res) => this.handleMessage(res, resolve, reject));
             });
         });
     }
     post(url, body, opts) {
         var _a;
-        if (opts === void 0) { opts = Util.jsonDefault({
+        if (opts === void 0) { opts = util_1.Util.jsonDefault({
             method: 'POST',
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
         }); }
@@ -94,15 +118,15 @@ export class TinyHttpClient {
             return yield new Promise((resolve, reject) => {
                 if (url.startsWith('/'))
                     throw new TypeError('URL must-not start with slash');
-                const completeUrl = Util.resolveUri(url, this);
+                const completeUrl = util_1.Util.resolveUri(url, this);
                 const postOpts = Object.assign(Object.assign({}, opts), { json: typeof body === 'object' ? body : undefined, content: typeof body === 'string' ? body : undefined, method: 'POST' });
-                getPureRequest(completeUrl, postOpts, (res) => this.handleMessage(res, resolve, reject));
+                (0, exports.getPureRequest)(completeUrl, postOpts, (res) => this.handleMessage(res, resolve, reject));
             });
         });
     }
     delete(url, opts) {
         var _a;
-        if (opts === void 0) { opts = Util.jsonDefault({
+        if (opts === void 0) { opts = util_1.Util.jsonDefault({
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
             method: 'DELETE',
         }); }
@@ -110,7 +134,7 @@ export class TinyHttpClient {
     }
     put(url, body, opts) {
         var _a;
-        if (opts === void 0) { opts = Util.jsonDefault({
+        if (opts === void 0) { opts = util_1.Util.jsonDefault({
             method: 'PUT',
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
         }); }
@@ -118,7 +142,7 @@ export class TinyHttpClient {
     }
     options(url, opts) {
         var _a;
-        if (opts === void 0) { opts = Util.jsonDefault({
+        if (opts === void 0) { opts = util_1.Util.jsonDefault({
             method: 'OPTIONS',
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
         }); }
@@ -136,6 +160,7 @@ export class TinyHttpClient {
         res.on('error', (err) => rejectFunc(err));
     }
 }
-export const tinyHttp = new TinyHttpClient({
+exports.TinyHttpClient = TinyHttpClient;
+exports.tinyHttp = new TinyHttpClient({
     baseURL: '',
 });
