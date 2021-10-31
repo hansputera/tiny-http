@@ -29,18 +29,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tinyHttp = exports.TinyHttpClient = exports.getPureRequest = exports.Response = void 0;
+const node_buffer_1 = require("node:buffer");
 const http = __importStar(require("node:http"));
 const https = __importStar(require("node:https"));
 const node_stream_1 = require("node:stream");
+const errors_1 = require("./errors");
+const followRedirect_1 = require("./followRedirect");
 const util_1 = require("./util");
 class Response {
     constructor(res) {
         this.res = res;
         this.data = Buffer.alloc(0);
         this.stream = new node_stream_1.PassThrough();
+        this.raw = this.res;
     }
     addData(data) {
         this.data = Buffer.concat([this.data, data]);
+    }
+    onDownload(cb) {
+        this.stream.on('data', (chunk) => {
+            cb(new node_buffer_1.Blob([this.data]).size, new node_buffer_1.Blob([chunk]).size);
+        });
     }
     getData() {
         return this.data;
@@ -59,11 +68,11 @@ class Response {
     get isOk() {
         return this.res.statusCode ? this.res.statusCode >= 200 && this.res.statusCode < 300 : false;
     }
-    get statusMessage() {
-        return this.statusMessage;
+    getStatusMessage() {
+        return this.res.statusMessage;
     }
-    get statusCode() {
-        return this.statusCode;
+    getStatusCode() {
+        return this.res.statusCode;
     }
     get url() {
         return this.res.url || '';
@@ -73,6 +82,7 @@ exports.Response = Response;
 const getPureRequest = (url, options = util_1.Util.jsonDefault({
     headers: {},
     method: 'GET',
+    timeout: 15 * 1000,
 }), handleResponse) => {
     const protocol = util_1.Util.parseProtocol(url);
     if (!protocol)
@@ -81,6 +91,10 @@ const getPureRequest = (url, options = util_1.Util.jsonDefault({
         options.headers = Object.assign(Object.assign({}, options.headers), { 'Content-Type': 'application/json' });
     const request = protocol.toLowerCase() === 'http'
         ? http.request(url, Object.assign({}, options), handleResponse && handleResponse) : https.request(url, Object.assign({}, options), handleResponse && handleResponse);
+    request.setTimeout(options.timeout);
+    request.on('timeout', () => {
+        request.destroy(errors_1.timeoutError);
+    });
     if (typeof options.json === 'object')
         request.write(JSON.stringify(options.json));
     else if (typeof options.content === 'string')
@@ -98,13 +112,25 @@ class TinyHttpClient {
         if (opts === void 0) { opts = util_1.Util.jsonDefault({
             method: 'GET',
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
+            timeout: 15 * 1000,
         }); }
         return __awaiter(this, void 0, void 0, function* () {
             return yield new Promise((resolve, reject) => {
                 if (url.startsWith('/'))
                     throw new TypeError('URL must-not start with slash');
                 const completeUrl = util_1.Util.resolveUri(url, this);
-                (0, exports.getPureRequest)(completeUrl, opts, (res) => this.handleMessage(res, resolve, reject));
+                (0, exports.getPureRequest)(completeUrl, opts, (res) => {
+                    new followRedirect_1.FollowRedirect(new Response(res), (newUrl) => {
+                        if (newUrl.startsWith('/')) {
+                            this.get(url, opts).then((res) => resolve(res))
+                                .catch((e) => reject(e));
+                        }
+                        else {
+                            exports.tinyHttp.get(url, opts).then((res) => resolve(res))
+                                .catch((e) => reject(e));
+                        }
+                    }, () => this.handleMessage(res, resolve, reject));
+                });
             });
         });
     }
@@ -113,6 +139,7 @@ class TinyHttpClient {
         if (opts === void 0) { opts = util_1.Util.jsonDefault({
             method: 'POST',
             headers: (_a = this.clientOptions.headers) !== null && _a !== void 0 ? _a : {},
+            timeout: 15 * 1000,
         }); }
         return __awaiter(this, void 0, void 0, function* () {
             return yield new Promise((resolve, reject) => {
@@ -120,7 +147,18 @@ class TinyHttpClient {
                     throw new TypeError('URL must-not start with slash');
                 const completeUrl = util_1.Util.resolveUri(url, this);
                 const postOpts = Object.assign(Object.assign({}, opts), { json: typeof body === 'object' ? body : undefined, content: typeof body === 'string' ? body : undefined, method: 'POST' });
-                (0, exports.getPureRequest)(completeUrl, postOpts, (res) => this.handleMessage(res, resolve, reject));
+                (0, exports.getPureRequest)(completeUrl, postOpts, (res) => {
+                    new followRedirect_1.FollowRedirect(new Response(res), (newUrl) => {
+                        if (newUrl.startsWith('/')) {
+                            this.get(url, opts).then((res) => resolve(res))
+                                .catch((e) => reject(e));
+                        }
+                        else {
+                            exports.tinyHttp.get(url, opts).then((res) => resolve(res))
+                                .catch((e) => reject(e));
+                        }
+                    }, () => this.handleMessage(res, resolve, reject));
+                });
             });
         });
     }
