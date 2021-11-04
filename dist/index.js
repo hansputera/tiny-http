@@ -55,6 +55,10 @@ class Request {
     get raw() {
         return this.req;
     }
+    setResponse(resp) {
+        this.response = resp;
+        return this;
+    }
 }
 exports.Request = Request;
 class Response {
@@ -100,7 +104,9 @@ class Response {
         return this.res.url || this.request.url;
     }
     get request() {
-        return new Request(this.req);
+        const req = new Request(this.req);
+        req.setResponse(this);
+        return req;
     }
 }
 exports.Response = Response;

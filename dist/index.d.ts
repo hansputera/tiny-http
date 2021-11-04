@@ -27,6 +27,7 @@ export declare class Request {
     get socket(): http.OutgoingMessage['socket'];
     get headers(): Record<string, unknown>;
     get raw(): http.ClientRequest;
+    setResponse(resp: Response): Request;
 }
 export declare class Response {
     private req;

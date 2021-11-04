@@ -88,6 +88,12 @@ export class Response {
      */
     public stream = new PassThrough();
 
+    /**
+     * @ignore
+     * You may not use this.
+     * 
+     * @param data - Chunk buffer
+     */
     public addData(data: Buffer): void {
         this.data = Buffer.concat([this.data, data]);
     }
@@ -354,6 +360,7 @@ export class TinyHttpClient {
     /**
      * Handling response
      * 
+     * @param req - ClientRequest
      * @param res - IncomingMessage Response
      * @param resolveFunc - Resolve function
      * @param rejectFunc - Reject function
