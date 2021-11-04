@@ -1,6 +1,6 @@
 {
   "name": "hanif-tiny-http",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "My Tiny Http Client",
   "main": "./dist/index.js",
   "author": "Hanif",
@@ -32,7 +32,7 @@
     "clean": "npm run clean:build && npm run clean:docs",
     "test": "jest",
     "test:manual": "npm run clean:build && npm run build && node ./dist/test",
-    "build": "tsc --build tsconfig.json",
+    "build": "npm run clean:build && tsc --build tsconfig.json",
     "lint": "eslint . --fix",
     "docs": "npm run clean:docs && typedoc",
     "prepare": "husky install"

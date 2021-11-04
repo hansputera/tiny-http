@@ -1,9 +1,10 @@
 /// <reference types="node" />
 import { Response, TinyHttpClient, TinyHttpOptions } from '.';
-import type { IncomingMessage } from 'http';
+import type { ClientRequest, IncomingMessage } from 'http';
 import type { TinyResolveFunction, TinyRejectFunction } from './types';
 export declare class FollowRedirect {
     private client;
+    private pureReq?;
     protected maxRedirects: number;
     private currentRedirects;
     private _responses;
@@ -14,4 +15,5 @@ export declare class FollowRedirect {
     getResponses(): Response[];
     getCurrentRedirects(): number;
     setMaxRedirects(redirects?: number): FollowRedirect;
+    setPureRequest(req: ClientRequest): FollowRedirect;
 }

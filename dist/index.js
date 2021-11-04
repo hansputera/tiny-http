@@ -28,7 +28,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tinyHttp = exports.TinyHttpClient = exports.getPureRequest = exports.Response = void 0;
+exports.tinyHttp = exports.TinyHttpClient = exports.getPureRequest = exports.Response = exports.Request = void 0;
 const node_buffer_1 = require("node:buffer");
 const http = __importStar(require("node:http"));
 const https = __importStar(require("node:https"));
@@ -36,8 +36,30 @@ const node_stream_1 = require("node:stream");
 const errors_1 = require("./errors");
 const followRedirect_1 = require("./followRedirect");
 const util_1 = require("./util");
+class Request {
+    constructor(req) {
+        this.req = req;
+    }
+    get method() {
+        return this.req.method;
+    }
+    get url() {
+        return `${this.req.protocol}//${this.req.host}${this.req.path}`;
+    }
+    get socket() {
+        return this.req.socket;
+    }
+    get headers() {
+        return this.req.getHeaders();
+    }
+    get raw() {
+        return this.req;
+    }
+}
+exports.Request = Request;
 class Response {
-    constructor(res) {
+    constructor(req, res) {
+        this.req = req;
         this.res = res;
         this.data = Buffer.alloc(0);
         this.stream = new node_stream_1.PassThrough();
@@ -75,7 +97,10 @@ class Response {
         return this.res.statusCode || 200;
     }
     get url() {
-        return this.res.url || '';
+        return this.res.url || this.request.url;
+    }
+    get request() {
+        return new Request(this.req);
     }
 }
 exports.Response = Response;
@@ -83,7 +108,7 @@ const getPureRequest = (url, options = util_1.Util.jsonDefault({
     headers: {},
     method: 'GET',
     timeout: 15 * 1000,
-}), handleResponse) => {
+}), handleResponse, callbackReq) => {
     const protocol = util_1.Util.parseProtocol(url);
     if (!protocol)
         throw new TypeError('Invalid URL');
@@ -99,8 +124,8 @@ const getPureRequest = (url, options = util_1.Util.jsonDefault({
         request.write(JSON.stringify(options.json));
     else if (typeof options.content === 'string')
         request.write(options.content);
+    callbackReq && callbackReq(request);
     request.end();
-    return request;
 };
 exports.getPureRequest = getPureRequest;
 class TinyHttpClient {
@@ -120,9 +145,10 @@ class TinyHttpClient {
                 if (url.startsWith('/'))
                     throw new TypeError('URL must-not start with slash');
                 const completeUrl = util_1.Util.resolveUri(url, this);
+                const followRedirect = new followRedirect_1.FollowRedirect(this);
                 (0, exports.getPureRequest)(completeUrl, opts, (res) => {
-                    new followRedirect_1.FollowRedirect(this).handle(resolve, reject, opts, res);
-                });
+                    followRedirect.handle(resolve, reject, opts, res);
+                }, (req) => followRedirect.setPureRequest(req));
             });
         });
     }
@@ -139,9 +165,10 @@ class TinyHttpClient {
                     throw new TypeError('URL must-not start with slash');
                 const completeUrl = util_1.Util.resolveUri(url, this);
                 const postOpts = Object.assign(Object.assign({}, opts), { json: typeof body === 'object' ? body : undefined, content: typeof body === 'string' ? body : undefined, method: 'POST' });
+                const followRedirect = new followRedirect_1.FollowRedirect(this);
                 (0, exports.getPureRequest)(completeUrl, postOpts, (res) => {
-                    new followRedirect_1.FollowRedirect(this).handle(resolve, reject, opts, res);
-                });
+                    followRedirect.handle(resolve, reject, opts, res);
+                }, (req) => followRedirect.setPureRequest(req));
             });
         });
     }
@@ -169,8 +196,8 @@ class TinyHttpClient {
         }); }
         return this.get(url, Object.assign(Object.assign({}, opts), { method: 'OPTIONS' }));
     }
-    handleMessage(res, resolveFunc, rejectFunc) {
-        const response = new Response(res);
+    handleMessage(req, res, resolveFunc, rejectFunc) {
+        const response = new Response(req, res);
         res.on('data', (chunk) => {
             response.addData(Buffer.from(chunk));
             response.stream.push(Buffer.from(chunk));
