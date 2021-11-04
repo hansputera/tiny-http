@@ -62,17 +62,17 @@ class Response {
             return JSON.parse(this.getContent());
         });
     }
-    getHeaders() {
+    get headers() {
         return this.res.headers;
     }
     get isOk() {
         return this.res.statusCode ? this.res.statusCode >= 200 && this.res.statusCode < 300 : false;
     }
-    getStatusMessage() {
-        return this.res.statusMessage;
+    get statusMessage() {
+        return this.res.statusMessage || '';
     }
-    getStatusCode() {
-        return this.res.statusCode;
+    get statusCode() {
+        return this.res.statusCode || 200;
     }
     get url() {
         return this.res.url || '';
@@ -106,6 +106,7 @@ exports.getPureRequest = getPureRequest;
 class TinyHttpClient {
     constructor(clientOptions) {
         this.clientOptions = clientOptions;
+        this._handle = this.handleMessage;
     }
     get(url, opts) {
         var _a;
@@ -120,16 +121,7 @@ class TinyHttpClient {
                     throw new TypeError('URL must-not start with slash');
                 const completeUrl = util_1.Util.resolveUri(url, this);
                 (0, exports.getPureRequest)(completeUrl, opts, (res) => {
-                    new followRedirect_1.FollowRedirect(new Response(res), (newUrl) => {
-                        if (newUrl.startsWith('/')) {
-                            this.get(url, opts).then((res) => resolve(res))
-                                .catch((e) => reject(e));
-                        }
-                        else {
-                            exports.tinyHttp.get(url, opts).then((res) => resolve(res))
-                                .catch((e) => reject(e));
-                        }
-                    }, () => this.handleMessage(res, resolve, reject));
+                    new followRedirect_1.FollowRedirect(this).handle(resolve, reject, opts, res);
                 });
             });
         });
@@ -148,16 +140,7 @@ class TinyHttpClient {
                 const completeUrl = util_1.Util.resolveUri(url, this);
                 const postOpts = Object.assign(Object.assign({}, opts), { json: typeof body === 'object' ? body : undefined, content: typeof body === 'string' ? body : undefined, method: 'POST' });
                 (0, exports.getPureRequest)(completeUrl, postOpts, (res) => {
-                    new followRedirect_1.FollowRedirect(new Response(res), (newUrl) => {
-                        if (newUrl.startsWith('/')) {
-                            this.get(url, opts).then((res) => resolve(res))
-                                .catch((e) => reject(e));
-                        }
-                        else {
-                            exports.tinyHttp.get(url, opts).then((res) => resolve(res))
-                                .catch((e) => reject(e));
-                        }
-                    }, () => this.handleMessage(res, resolve, reject));
+                    new followRedirect_1.FollowRedirect(this).handle(resolve, reject, opts, res);
                 });
             });
         });

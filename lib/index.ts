@@ -74,7 +74,7 @@ export class Response {
     /**
      * Get response headers
      */
-    public getHeaders(): http.IncomingHttpHeaders {
+    public get headers(): http.IncomingHttpHeaders {
         return this.res.headers;
     }
     /**
@@ -86,14 +86,14 @@ export class Response {
     /**
      * Get response status message
      */
-    public getStatusMessage(): string {
-        return this.res.statusMessage as string;
+    public get statusMessage(): string {
+        return this.res.statusMessage || '';
     }
     /**
      * Get response status code like 200, 204, 403, 401, 301, etc.
      */
-    public getStatusCode(): number {
-        return this.res.statusCode as number;
+    public get statusCode(): number {
+        return this.res.statusCode || 200;
     }
     /**
      * Get response url.
@@ -180,15 +180,7 @@ export class TinyHttpClient {
 
 			const completeUrl = Util.resolveUri(url, this);
 			getPureRequest(completeUrl, opts, (res) => {
-                new FollowRedirect(new Response(res), (newUrl) => {
-                    if (newUrl.startsWith('/')) {
-                        this.get(url, opts).then((res) => resolve(res))
-                        .catch((e) => reject(e));
-                    } else {
-                        tinyHttp.get(url, opts).then((res) => resolve(res))
-                        .catch((e) => reject(e));
-                    }
-                }, () => this.handleMessage(res, resolve, reject));
+                new FollowRedirect(this).handle(resolve, reject, opts, res);
             });
 		});
 	}
@@ -225,15 +217,7 @@ export class TinyHttpClient {
 				method: 'POST',
 			};
 			getPureRequest(completeUrl, postOpts, (res) => {
-                new FollowRedirect(new Response(res), (newUrl) => {
-                    if (newUrl.startsWith('/')) {
-                        this.get(url, opts).then((res) => resolve(res))
-                        .catch((e) => reject(e));
-                    } else {
-                        tinyHttp.get(url, opts).then((res) => resolve(res))
-                        .catch((e) => reject(e));
-                    }
-                }, () => this.handleMessage(res, resolve, reject));
+                new FollowRedirect(this).handle(resolve, reject, opts, res);
             });
 		});
 	}
@@ -325,6 +309,8 @@ export class TinyHttpClient {
         });
         res.on('error', (err) => rejectFunc(err));
 	}
+
+    public _handle = this.handleMessage;
 }
 
 /**

@@ -1,30 +1,41 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FollowRedirect = void 0;
+const _1 = require(".");
 const errors_1 = require("./errors");
 class FollowRedirect {
-    constructor(res, shouldTryFunc, dontRedirectFunc) {
-        this.res = res;
-        this.shouldTryFunc = shouldTryFunc;
-        this.dontRedirectFunc = dontRedirectFunc;
+    constructor(client) {
+        this.client = client;
         this.maxRedirects = 5;
         this.currentRedirects = 0;
         this._responses = [];
-        this.handle(res);
     }
-    handle(res) {
-        const statusCode = res.getStatusCode();
-        console.log(this.currentRedirects);
+    handle(resolveFunc, rejectFunc, opts, res) {
+        const statusCode = res.statusCode || 200;
         if (this.currentRedirects >= this.maxRedirects)
             throw errors_1.tooManyRedirectsError;
         if (statusCode > 300 && statusCode < 303 && this.currentRedirects <= this.maxRedirects) {
             this.currentRedirects += 1;
-            console.log(this.res.getHeaders());
-            this.shouldTryFunc(this.res.getHeaders()['location']);
+            this.redirectFunc(resolveFunc, rejectFunc, opts, res.headers['location']);
         }
         else {
-            this.dontRedirectFunc();
+            this.dontRedirectFunc(resolveFunc, rejectFunc, res);
         }
+    }
+    redirectFunc(resolveFunc, rejectFunc, opts, newUrl) {
+        if (newUrl.startsWith('/')) {
+            this.client.get(newUrl, opts).then((res) => {
+                resolveFunc(res);
+            }).catch((err) => rejectFunc(err));
+        }
+        else {
+            _1.tinyHttp.get(newUrl, opts).then((res) => {
+                resolveFunc(res);
+            }).catch((err) => rejectFunc(err));
+        }
+    }
+    dontRedirectFunc(resolveFunc, rejectFunc, res) {
+        this.client._handle(res, resolveFunc, rejectFunc);
     }
     getResponses() {
         return this._responses;
