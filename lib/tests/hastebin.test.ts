@@ -6,7 +6,7 @@ interface HastebinOutput {
 
 describe('Hastebin', () => {
 	const client = new TinyHttpClient({
-		baseURL: 'https://hastebin.com',
+		baseURL: 'https://haste.zann.my.id',
 	});
 	let key = '';
 	const content = 'hello world';

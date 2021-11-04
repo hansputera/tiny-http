@@ -9,7 +9,10 @@
         "outDir": "./dist",
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "removeComments": true
+        "skipDefaultLibCheck": true,
+        "removeComments": true,
+        "types": ["node"],
+        "typeRoots": ["./node_modules/@types"]
     },
     "exclude": ["node_modules", "lib/tests/*.ts"],
     "include": ["lib/**/*.ts"]
