@@ -10,13 +10,14 @@ export declare type TinyHttpBase = {
     agent?: http.Agent;
 };
 export declare type TinyHttpOptions = Omit<TinyHttpBase, 'baseURL'> & {
-    method: RequestMethod;
+    method?: RequestMethod;
     json?: Record<string, unknown>;
     content?: string;
     maxRedirects?: number;
     timeout?: number;
+    stream?: boolean;
 } & http.RequestOptions & https.RequestOptions;
-declare type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => Response;
+declare type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => void;
 export declare class Request {
     private req;
     private response?;
@@ -56,7 +57,7 @@ export declare class TinyHttpClient {
     put(url: string, body?: string | TinyHttpOptions['json'], opts?: TinyHttpOptions): Promise<OmittedResponse>;
     options(url: string, opts?: TinyHttpOptions): Promise<OmittedResponse>;
     private handleMessage;
-    _handle: (req: http.ClientRequest, res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void) => void;
+    _handle: (req: http.ClientRequest, res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void, isStream?: boolean) => void;
 }
 export declare const tinyHttp: TinyHttpClient;
 export {};

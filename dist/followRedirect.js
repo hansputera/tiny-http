@@ -19,7 +19,7 @@ class FollowRedirect {
             this.redirectFunc(resolveFunc, rejectFunc, opts, res.headers['location']);
         }
         else {
-            this.dontRedirectFunc(resolveFunc, rejectFunc, res);
+            this.dontRedirectFunc(resolveFunc, rejectFunc, res, opts.stream);
         }
     }
     redirectFunc(resolveFunc, rejectFunc, opts, newUrl) {
@@ -34,8 +34,8 @@ class FollowRedirect {
             }).catch((err) => rejectFunc(err));
         }
     }
-    dontRedirectFunc(resolveFunc, rejectFunc, res) {
-        this.client._handle(this.pureReq, res, resolveFunc, rejectFunc);
+    dontRedirectFunc(resolveFunc, rejectFunc, res, stream = false) {
+        this.client._handle(this.pureReq, res, resolveFunc, rejectFunc, stream);
     }
     getResponses() {
         return this._responses;

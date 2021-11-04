@@ -14,14 +14,15 @@ export type TinyHttpBase = {
     agent?: http.Agent;
 };
 export type TinyHttpOptions = Omit<TinyHttpBase, 'baseURL'> & {
-    method: RequestMethod;
+    method?: RequestMethod;
     json?: Record<string, unknown>;
     content?: string;
     maxRedirects?: number;
     timeout?: number;
+    stream?: boolean;
 } & http.RequestOptions & https.RequestOptions;
 
-type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => Response;
+type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => void;
 
 
 /**
@@ -67,6 +68,11 @@ export class Request {
      */
     get raw(): http.ClientRequest {
         return this.req;
+    }
+
+    public setResponse(resp: Response): Request {
+        this.response = resp;
+        return this;
     }
 }
 
@@ -150,7 +156,9 @@ export class Response {
     }
 
     public get request(): Request {
-        return new Request(this.req);
+        const req = new Request(this.req);
+        req.setResponse(this);
+        return req;
     }
 }
 
@@ -176,8 +184,7 @@ export const getPureRequest = (url: URL | string, options = Util.jsonDefault<Tin
 
 	const request = protocol.toLowerCase() === 'http'
 		? http.request(url, { ...options, }, handleResponse && handleResponse) : https.request(url, { ...options, }, handleResponse && handleResponse);
-
-    request.setTimeout(options.timeout as number);
+    request.setTimeout(options.timeout as number || 15 * 1000);
     request.on('timeout', () => {
         request.destroy(timeoutError);
     });
@@ -351,16 +358,18 @@ export class TinyHttpClient {
      * @param resolveFunc - Resolve function
      * @param rejectFunc - Reject function
      */
-	private handleMessage(req: http.ClientRequest, res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void): void {
+	private handleMessage(req: http.ClientRequest, res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void, isStream = false): void {
         const response = new Response(req, res);
         res.on('data', (chunk) => {
             response.addData(Buffer.from(chunk));
             response.stream.push(Buffer.from(chunk));
         });
         res.on('close', () => {
-            resolveFunc(response as OmittedResponse);
+            if (!isStream) resolveFunc(response as OmittedResponse);
         });
         res.on('error', (err) => rejectFunc(err));
+
+        if (isStream) resolveFunc(response);
 	}
 
     public _handle = this.handleMessage;
