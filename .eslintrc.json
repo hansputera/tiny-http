@@ -32,6 +32,7 @@
         "no-func-assign": "error",
         "no-unreachable": "error",
         "no-eval": "error",
-        "no-global-assign": "error"
+        "no-global-assign": "error",
+        "indent": ["error", 2]
     }
 }
