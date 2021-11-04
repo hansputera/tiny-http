@@ -6,7 +6,7 @@
   "author": "Hanif",
   "license": "MIT",
   "engines": {
-    "node": ">=12.x"
+    "node": ">=14.x"
   },
   "devDependencies": {
     "@babel/core": "^7.15.5",
