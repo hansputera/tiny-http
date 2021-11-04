@@ -55,6 +55,10 @@ class Request {
     get raw() {
         return this.req;
     }
+    setResponse(resp) {
+        this.response = resp;
+        return this;
+    }
 }
 exports.Request = Request;
 class Response {
@@ -100,7 +104,9 @@ class Response {
         return this.res.url || this.request.url;
     }
     get request() {
-        return new Request(this.req);
+        const req = new Request(this.req);
+        req.setResponse(this);
+        return req;
     }
 }
 exports.Response = Response;
@@ -116,7 +122,7 @@ const getPureRequest = (url, options = util_1.Util.jsonDefault({
         options.headers = Object.assign(Object.assign({}, options.headers), { 'Content-Type': 'application/json' });
     const request = protocol.toLowerCase() === 'http'
         ? http.request(url, Object.assign({}, options), handleResponse && handleResponse) : https.request(url, Object.assign({}, options), handleResponse && handleResponse);
-    request.setTimeout(options.timeout);
+    request.setTimeout(options.timeout || 15 * 1000);
     request.on('timeout', () => {
         request.destroy(errors_1.timeoutError);
     });
@@ -196,16 +202,19 @@ class TinyHttpClient {
         }); }
         return this.get(url, Object.assign(Object.assign({}, opts), { method: 'OPTIONS' }));
     }
-    handleMessage(req, res, resolveFunc, rejectFunc) {
+    handleMessage(req, res, resolveFunc, rejectFunc, isStream = false) {
         const response = new Response(req, res);
         res.on('data', (chunk) => {
             response.addData(Buffer.from(chunk));
             response.stream.push(Buffer.from(chunk));
         });
         res.on('close', () => {
-            resolveFunc(response);
+            if (!isStream)
+                resolveFunc(response);
         });
         res.on('error', (err) => rejectFunc(err));
+        if (isStream)
+            resolveFunc(response);
     }
 }
 exports.TinyHttpClient = TinyHttpClient;

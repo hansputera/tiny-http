@@ -17,12 +17,37 @@
 <a href="#basic-usage" id="basic-usage" style="color: inherit; text-decoration: none;">
   <h3>Basic usage</h3>
 </a>
-<p>ES6</p>
+<p>ES</p>
 <pre><code class="language-typescript"><span class="hl-0">import</span><span class="hl-1"> { </span><span class="hl-2">TinyHttpClient</span><span class="hl-1"> } </span><span class="hl-0">from</span><span class="hl-1"> </span><span class="hl-3">&quot;hanif-tiny-http&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">client</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">TinyHttpClient</span><span class="hl-1">({</span><br/><span class="hl-1">    </span><span class="hl-2">baseURL:</span><span class="hl-1"> </span><span class="hl-3">&quot;https://hastebin.com&quot;</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-4">interface</span><span class="hl-1"> </span><span class="hl-7">HastebinOut</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">key</span><span class="hl-1">: </span><span class="hl-7">string</span><span class="hl-1">;</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-2">client</span><span class="hl-1">.</span><span class="hl-6">post</span><span class="hl-1">(</span><span class="hl-3">&quot;documents&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;hello-world&quot;</span><span class="hl-1">).</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">response</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">response</span><span class="hl-1">.</span><span class="hl-6">getJSON</span><span class="hl-1">&lt;</span><span class="hl-7">HastebinOut</span><span class="hl-1">&gt;().</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">json</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">        </span><span class="hl-2">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-2">json</span><span class="hl-1">.</span><span class="hl-2">key</span><span class="hl-1">);</span><br/><span class="hl-1">    });</span><br/><span class="hl-1">});</span>
 </code></pre>
 <p>CJS</p>
 <pre><code class="language-javascript"><span class="hl-4">const</span><span class="hl-1"> { </span><span class="hl-5">TinyHttpClient</span><span class="hl-1"> } = </span><span class="hl-6">require</span><span class="hl-1">(</span><span class="hl-3">&quot;hanif-tiny-http&quot;</span><span class="hl-1">);</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">client</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">TinyHttpClient</span><span class="hl-1">({</span><br/><span class="hl-1">    </span><span class="hl-2">baseURL:</span><span class="hl-1"> </span><span class="hl-3">&quot;https://hastebin.com&quot;</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-2">client</span><span class="hl-1">.</span><span class="hl-6">post</span><span class="hl-1">(</span><span class="hl-3">&quot;documents&quot;</span><span class="hl-1">, </span><span class="hl-3">&quot;hello-world&quot;</span><span class="hl-1">).</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">response</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">response</span><span class="hl-1">.</span><span class="hl-6">getJSON</span><span class="hl-1">().</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">json</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">        </span><span class="hl-2">console</span><span class="hl-1">.</span><span class="hl-6">log</span><span class="hl-1">(</span><span class="hl-2">json</span><span class="hl-1">.</span><span class="hl-2">key</span><span class="hl-1">);</span><br/><span class="hl-1">    });</span><br/><span class="hl-1">});</span>
 </code></pre>
+
+<a href="#stream-usage" id="stream-usage" style="color: inherit; text-decoration: none;">
+  <h3>Stream Usage</h3>
+</a>
+<p>Do you want to download a video or something with streaming mode?
+Well, that&#39;s probably here.</p>
+<p>Simply enter &#39;stream&#39; in the request option, fill it with a boolean value.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-ts"><span class="hl-2">client</span><span class="hl-1">.</span><span class="hl-6">get</span><span class="hl-1">(</span><span class="hl-3">&#39;https://somesite.com&#39;</span><span class="hl-1">, { </span><span class="hl-2">stream:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1"> }).</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">response</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">response</span><span class="hl-1">.</span><span class="hl-2">stream</span><span class="hl-1">; </span><span class="hl-8">// use it.</span><br/><span class="hl-1">});</span>
+</code></pre>
+<p>Also, if you want get download progress that&#39;s possible here.</p>
+<blockquote>
+<p><code>onDownload</code> won&#39;t work without stream mode.</p>
+</blockquote>
+<pre><code class="language-ts"><span class="hl-2">client</span><span class="hl-1">.</span><span class="hl-6">get</span><span class="hl-1">(</span><span class="hl-3">&#39;https://somesite.com&#39;</span><span class="hl-1">, { </span><span class="hl-2">stream:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1"> }).</span><span class="hl-6">then</span><span class="hl-1">((</span><span class="hl-2">response</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">response</span><span class="hl-1">.</span><span class="hl-6">onDownload</span><span class="hl-1">((</span><span class="hl-2">totalBytes</span><span class="hl-1">, </span><span class="hl-2">downloadedBytes</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">        </span><span class="hl-8">// stuff..</span><br/><span class="hl-1">    });</span><br/><span class="hl-1">});</span>
+</code></pre>
+<p><strong>What&#39;s difference?</strong></p>
+<p>If the stream option is enabled, you&#39;ll receive a response class instantly without having the response content load perfectly.</p>
+<p>If the stream option is disabled, you&#39;ll need to wait until the response content loads correctly.</p>
+
+<a href="#contribution" id="contribution" style="color: inherit; text-decoration: none;">
+  <h3>Contribution</h3>
+</a>
+<p>You are welcome to contribute this package.
+<del>if you want</del></p>
 
 <a href="#note" id="note" style="color: inherit; text-decoration: none;">
   <h3>Note</h3>
