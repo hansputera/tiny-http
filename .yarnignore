@@ -7,3 +7,4 @@ yarn.lock
 tsconfig.json
 typedoc.json
 docs/
+.husky
