@@ -1,6 +1,6 @@
 import { Response, tinyHttp, TinyHttpClient, TinyHttpOptions } from '.';
 import { tooManyRedirectsError } from './errors';
-import type { IncomingMessage } from 'http';
+import type { ClientRequest, IncomingMessage } from 'http';
 import type { TinyResolveFunction, TinyRejectFunction } from './types';
 
 
@@ -10,6 +10,10 @@ import type { TinyResolveFunction, TinyRejectFunction } from './types';
  * Follow redirect class to handle redirected response
  */
 export class FollowRedirect {
+    /**
+     * Pure HTTP Request
+     */
+    private pureReq?: ClientRequest;
     /**
      * Default max redirect
      */
@@ -29,9 +33,9 @@ export class FollowRedirect {
     public handle(resolveFunc: TinyResolveFunction, rejectFunc: TinyRejectFunction, opts: TinyHttpOptions, res: IncomingMessage): void {
         const statusCode = res.statusCode || 200;
         if (this.currentRedirects >= this.maxRedirects) throw tooManyRedirectsError;
-        if (statusCode > 300 && statusCode < 303 && this.currentRedirects <= this.maxRedirects) {
+        // Ref: https://stackoverflow.com/questions/42136829/whats-the-difference-between-http-301-and-308-status-codes
+        else if (statusCode > 300 && statusCode < 309 && this.currentRedirects <= this.maxRedirects && res.headers.location) {
             this.currentRedirects += 1;
-
             this.redirectFunc(resolveFunc, rejectFunc, opts, res.headers['location'] as string);
         } else {
             this.dontRedirectFunc(resolveFunc, rejectFunc, res);
@@ -51,7 +55,7 @@ export class FollowRedirect {
     }
 
     private dontRedirectFunc(resolveFunc: TinyResolveFunction, rejectFunc: TinyRejectFunction, res: IncomingMessage) {
-        this.client._handle(res, resolveFunc, rejectFunc);
+        this.client._handle(this.pureReq as ClientRequest, res, resolveFunc, rejectFunc);
     }
 
     /**
@@ -80,6 +84,11 @@ export class FollowRedirect {
      */
     public setMaxRedirects(redirects = 5): FollowRedirect {
         this.maxRedirects = redirects;
+        return this;
+    }
+    
+    public setPureRequest(req: ClientRequest): FollowRedirect {
+        this.pureReq = req;
         return this;
     }
 } 

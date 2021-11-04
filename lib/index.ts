@@ -23,11 +23,58 @@ export type TinyHttpOptions = Omit<TinyHttpBase, 'baseURL'> & {
 
 type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => Response;
 
+
+/**
+ * Tiny Http Request class.
+ */
+export class Request {
+    /**
+     * Response result (if any)
+     */
+    private response?: Response;
+    constructor(private req: http.ClientRequest) {}
+
+    /**
+     * Get current request method.
+     */
+    get method(): RequestMethod {
+        return this.req.method as RequestMethod;
+    }
+
+    /**
+     * Get requested url
+     */
+    get url(): string {
+        return `${this.req.protocol}//${this.req.host}${this.req.path}`;
+    }
+
+    /**
+     * Get Socket connection
+     */
+    get socket(): http.OutgoingMessage['socket'] {
+        return this.req.socket;
+    }
+
+    /**
+     * Get request headers
+     */
+    get headers(): Record<string, unknown> {
+        return this.req.getHeaders();
+    }
+
+    /**
+     * Get raw request
+     */
+    get raw(): http.ClientRequest {
+        return this.req;
+    }
+}
+
 /**
  * Tiny HTTP Response class.
  */
 export class Response {
-	constructor(private res: http.IncomingMessage) {}
+	constructor(private req: http.ClientRequest, private res: http.IncomingMessage) {}
 
     protected data = Buffer.alloc(0);
     /**
@@ -99,7 +146,11 @@ export class Response {
      * Get response url.
      */
     public get url(): string {
-        return this.res.url || '';
+        return this.res.url || this.request.url;
+    }
+
+    public get request(): Request {
+        return new Request(this.req);
     }
 }
 
@@ -114,7 +165,7 @@ export const getPureRequest = (url: URL | string, options = Util.jsonDefault<Tin
 	headers: {},
 	method: 'GET',
     timeout: 15 * 1000,
-}), handleResponse?: (res: http.IncomingMessage) => void): http.ClientRequest => {
+}), handleResponse?: (res: http.IncomingMessage) => void, callbackReq?: (req: http.ClientRequest) => void): void => {
 	const protocol = Util.parseProtocol(url);
 	if (!protocol) throw new TypeError('Invalid URL');
 
@@ -132,8 +183,8 @@ export const getPureRequest = (url: URL | string, options = Util.jsonDefault<Tin
     });
     if (typeof options.json === 'object') request.write(JSON.stringify(options.json));
 	else if (typeof options.content === 'string') request.write(options.content);
-	request.end();
-	return request;
+	callbackReq && callbackReq(request);
+    request.end();
 };
 
 /**
@@ -179,9 +230,10 @@ export class TinyHttpClient {
 			if (url.startsWith('/')) throw new TypeError('URL must-not start with slash');
 
 			const completeUrl = Util.resolveUri(url, this);
+            const followRedirect = new FollowRedirect(this);
 			getPureRequest(completeUrl, opts, (res) => {
-                new FollowRedirect(this).handle(resolve, reject, opts, res);
-            });
+                followRedirect.handle(resolve, reject, opts, res);
+            }, (req) => followRedirect.setPureRequest(req));
 		});
 	}
 
@@ -216,9 +268,10 @@ export class TinyHttpClient {
 				content: typeof body === 'string' ? body as string : undefined,
 				method: 'POST',
 			};
+            const followRedirect = new FollowRedirect(this);
 			getPureRequest(completeUrl, postOpts, (res) => {
-                new FollowRedirect(this).handle(resolve, reject, opts, res);
-            });
+                followRedirect.handle(resolve, reject, opts, res);
+            }, (req) => followRedirect.setPureRequest(req));
 		});
 	}
 
@@ -298,8 +351,8 @@ export class TinyHttpClient {
      * @param resolveFunc - Resolve function
      * @param rejectFunc - Reject function
      */
-	private handleMessage(res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void): void {
-        const response = new Response(res);
+	private handleMessage(req: http.ClientRequest, res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void): void {
+        const response = new Response(req, res);
         res.on('data', (chunk) => {
             response.addData(Buffer.from(chunk));
             response.stream.push(Buffer.from(chunk));

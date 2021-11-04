@@ -14,7 +14,7 @@ class FollowRedirect {
         const statusCode = res.statusCode || 200;
         if (this.currentRedirects >= this.maxRedirects)
             throw errors_1.tooManyRedirectsError;
-        if (statusCode > 300 && statusCode < 303 && this.currentRedirects <= this.maxRedirects) {
+        else if (statusCode > 300 && statusCode < 309 && this.currentRedirects <= this.maxRedirects && res.headers.location) {
             this.currentRedirects += 1;
             this.redirectFunc(resolveFunc, rejectFunc, opts, res.headers['location']);
         }
@@ -35,7 +35,7 @@ class FollowRedirect {
         }
     }
     dontRedirectFunc(resolveFunc, rejectFunc, res) {
-        this.client._handle(res, resolveFunc, rejectFunc);
+        this.client._handle(this.pureReq, res, resolveFunc, rejectFunc);
     }
     getResponses() {
         return this._responses;
@@ -45,6 +45,10 @@ class FollowRedirect {
     }
     setMaxRedirects(redirects = 5) {
         this.maxRedirects = redirects;
+        return this;
+    }
+    setPureRequest(req) {
+        this.pureReq = req;
         return this;
     }
 }
