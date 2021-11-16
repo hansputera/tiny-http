@@ -20,7 +20,7 @@ export declare type TinyHttpOptions = Omit<TinyHttpBase, 'baseURL'> & {
 declare type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => void;
 export declare class Request {
     private req;
-    private response?;
+    response?: Response;
     constructor(req: http.ClientRequest);
     get method(): RequestMethod;
     get url(): string;
@@ -45,7 +45,6 @@ export declare class Response {
     get isOk(): boolean;
     get statusMessage(): string;
     get statusCode(): number;
-    get url(): string;
     get request(): Request;
 }
 export declare const getPureRequest: (url: URL | string, options?: TinyHttpOptions, handleResponse?: ((res: http.IncomingMessage) => void) | undefined, callbackReq?: ((req: http.ClientRequest) => void) | undefined) => void;

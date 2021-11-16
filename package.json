@@ -1,6 +1,6 @@
 {
   "name": "hanif-tiny-http",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "My Tiny Http Client",
   "main": "./dist/index.js",
   "author": "Hanif",

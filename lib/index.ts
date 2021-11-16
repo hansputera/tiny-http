@@ -32,7 +32,7 @@ export class Request {
     /**
      * Response result (if any)
      */
-    private response?: Response;
+    public response?: Response;
     constructor(private req: http.ClientRequest) {}
 
     /**
@@ -154,12 +154,6 @@ export class Response {
     public get statusCode(): number {
       return this.res.statusCode || 200;
     }
-    /**
-     * Get response url.
-     */
-    public get url(): string {
-      return this.res.url || this.request.url;
-    }
 
     public get request(): Request {
       const req = new Request(this.req);
@@ -176,7 +170,9 @@ export class Response {
  * @param handleResponse - A callback could handle your response.
  */
 export const getPureRequest = (url: URL | string, options = Util.jsonDefault<TinyHttpOptions>({
-  headers: {},
+  headers: {
+    'User-Agent': 'TinyHTTP'
+  },
   method: 'GET',
   timeout: 15 * 1000,
 }), handleResponse?: (res: http.IncomingMessage) => void, callbackReq?: (req: http.ClientRequest) => void): void => {
@@ -189,7 +185,8 @@ export const getPureRequest = (url: URL | string, options = Util.jsonDefault<Tin
   };
 
   const request = protocol.toLowerCase() === 'http'
-    ? http.request(url, { ...options, }, handleResponse && handleResponse) : https.request(url, { ...options, }, handleResponse && handleResponse);
+    ? http.request(url, { ...options, }, handleResponse && handleResponse) :
+    https.request(url, { ...options, }, handleResponse && handleResponse);
   request.setTimeout(options.timeout as number || 15 * 1000);
   request.on('timeout', () => {
     request.destroy(timeoutError);
@@ -244,6 +241,8 @@ export class TinyHttpClient {
 
       const completeUrl = Util.resolveUri(url, this);
       const followRedirect = new FollowRedirect(this);
+      if (opts.maxRedirects && typeof opts.maxRedirects === 'number')
+        followRedirect.setMaxRedirects(opts.maxRedirects);
       getPureRequest(completeUrl, opts, (res) => {
         followRedirect.handle(resolve, reject, opts, res);
       }, (req) => followRedirect.setPureRequest(req));
@@ -282,6 +281,8 @@ export class TinyHttpClient {
         method: 'POST',
       };
       const followRedirect = new FollowRedirect(this);
+      if (opts.maxRedirects && typeof opts.maxRedirects === 'number')
+        followRedirect.setMaxRedirects(opts.maxRedirects);
       getPureRequest(completeUrl, postOpts, (res) => {
         followRedirect.handle(resolve, reject, opts, res);
       }, (req) => followRedirect.setPureRequest(req));
