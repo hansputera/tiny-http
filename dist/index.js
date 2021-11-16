@@ -100,9 +100,6 @@ class Response {
     get statusCode() {
         return this.res.statusCode || 200;
     }
-    get url() {
-        return this.res.url || this.request.url;
-    }
     get request() {
         const req = new Request(this.req);
         req.setResponse(this);
@@ -111,7 +108,9 @@ class Response {
 }
 exports.Response = Response;
 const getPureRequest = (url, options = util_1.Util.jsonDefault({
-    headers: {},
+    headers: {
+        'User-Agent': 'TinyHTTP'
+    },
     method: 'GET',
     timeout: 15 * 1000,
 }), handleResponse, callbackReq) => {
@@ -121,7 +120,8 @@ const getPureRequest = (url, options = util_1.Util.jsonDefault({
     if (typeof options.json === 'object')
         options.headers = Object.assign(Object.assign({}, options.headers), { 'Content-Type': 'application/json' });
     const request = protocol.toLowerCase() === 'http'
-        ? http.request(url, Object.assign({}, options), handleResponse && handleResponse) : https.request(url, Object.assign({}, options), handleResponse && handleResponse);
+        ? http.request(url, Object.assign({}, options), handleResponse && handleResponse) :
+        https.request(url, Object.assign({}, options), handleResponse && handleResponse);
     request.setTimeout(options.timeout || 15 * 1000);
     request.on('timeout', () => {
         request.destroy(errors_1.timeoutError);
@@ -152,6 +152,8 @@ class TinyHttpClient {
                     throw new TypeError('URL must-not start with slash');
                 const completeUrl = util_1.Util.resolveUri(url, this);
                 const followRedirect = new followRedirect_1.FollowRedirect(this);
+                if (opts.maxRedirects && typeof opts.maxRedirects === 'number')
+                    followRedirect.setMaxRedirects(opts.maxRedirects);
                 (0, exports.getPureRequest)(completeUrl, opts, (res) => {
                     followRedirect.handle(resolve, reject, opts, res);
                 }, (req) => followRedirect.setPureRequest(req));
@@ -172,6 +174,8 @@ class TinyHttpClient {
                 const completeUrl = util_1.Util.resolveUri(url, this);
                 const postOpts = Object.assign(Object.assign({}, opts), { json: typeof body === 'object' ? body : undefined, content: typeof body === 'string' ? body : undefined, method: 'POST' });
                 const followRedirect = new followRedirect_1.FollowRedirect(this);
+                if (opts.maxRedirects && typeof opts.maxRedirects === 'number')
+                    followRedirect.setMaxRedirects(opts.maxRedirects);
                 (0, exports.getPureRequest)(completeUrl, postOpts, (res) => {
                     followRedirect.handle(resolve, reject, opts, res);
                 }, (req) => followRedirect.setPureRequest(req));
