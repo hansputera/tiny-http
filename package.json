@@ -9,8 +9,6 @@
     "node": ">=14.x"
   },
   "devDependencies": {
-    "@airbnb/node-memwatch": "^2.0.0",
-    "@types/airbnb__node-memwatch": "^2.0.0",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.10.2",
     "@typescript-eslint/eslint-plugin": "^5.23.0",
