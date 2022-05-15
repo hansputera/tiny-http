@@ -13,8 +13,7 @@ export class Util {
   static parseProtocol(url: URL | string): string | undefined {
     if (!this.validateURL) return undefined;
     else {
-      const protocol = new URL(url).protocol.slice(0, -1);
-      return protocol;
+      return (new URL(url)).protocol.slice(0, -1);
     }
   }
 
@@ -39,17 +38,16 @@ export class Util {
   /**
      * Resolve URI when using get, post, put, delete, and options method.
      * 
-     * @param uri - An URI want to resolve
-     * @param client - Tiny HTTP Instance
+     * @param {string} uri - An URI want to resolve
+     * @param {TinyHttpClient?} client - Tiny HTTP Instance
+     * @return {URL}
      */
-  static resolveUri(uri: string, client: TinyHttpClient): string {
-    if (typeof client.clientOptions.baseURL === 'string' && client.clientOptions.baseURL.length) {
-      const url = new URL(uri, client.clientOptions.baseURL);
-      return url.href;
+  static resolveUri(uri: string, client?: TinyHttpClient): URL {
+    if (client && typeof client.clientOptions.baseURL === 'string' && client.clientOptions.baseURL.length) {
+      return new URL(uri, client.clientOptions.baseURL);
     } else {
       if (!this.validateURL(uri)) throw new TypeError('Invalid URL');
-      const url = new URL(uri);
-      return url.href;
+      return new URL(uri);
     }
   }
 }
