@@ -1,201 +1,16 @@
-import { Blob } from 'node:buffer';
 import * as http from 'node:http';
 import * as https from 'node:https';
-import { PassThrough } from 'node:stream';
-import { timeoutError } from './errors';
+
 import { FollowRedirect } from './followRedirect';
 import { Util } from './util';
 
-export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS';
-export type OmittedResponse = Omit<Response, 'addData'>;
-export type TinyHttpBase = {
-    baseURL: string;
-    headers?: Record<string, string>;
-    agent?: http.Agent;
-};
-export type TinyHttpOptions = Omit<TinyHttpBase, 'baseURL'> & {
-    method?: RequestMethod;
-    json?: Record<string, unknown>;
-    content?: string;
-    maxRedirects?: number;
-    timeout?: number;
-    stream?: boolean;
-} & http.RequestOptions & https.RequestOptions;
+import { Response, getRawRequest } from './http';
 
-type OnDownloadProgressCallback = (dlBytes: number, chunkSize: number) => void;
-
-
-/**
- * Tiny Http Request class.
- */
-export class Request {
-    /**
-     * Response result (if any)
-     */
-    public response?: Response;
-    constructor(private req: http.ClientRequest) {}
-
-    /**
-     * Get current request method.
-     */
-    get method(): RequestMethod {
-      return this.req.method as RequestMethod;
-    }
-
-    /**
-     * Get requested url
-     */
-    get url(): string {
-      return `${this.req.protocol}//${this.req.host}${this.req.path}`;
-    }
-
-    /**
-     * Get Socket connection
-     */
-    get socket(): http.OutgoingMessage['socket'] {
-      return this.req.socket;
-    }
-
-    /**
-     * Get request headers
-     */
-    get headers(): Record<string, unknown> {
-      return this.req.getHeaders();
-    }
-
-    /**
-     * Get raw request
-     */
-    get raw(): http.ClientRequest {
-      return this.req;
-    }
-
-    public setResponse(resp: Response): Request {
-      this.response = resp;
-      return this;
-    }
-}
-
-/**
- * Tiny HTTP Response class.
- */
-export class Response {
-  constructor(private req: http.ClientRequest, private res: http.IncomingMessage) {}
-
-    protected data = Buffer.alloc(0);
-    /**
-     * Here you could track stream data.
-     */
-    public stream = new PassThrough();
-
-    /**
-     * @ignore
-     * You may not use this.
-     * 
-     * @param data - Chunk buffer
-     */
-    public addData(data: Buffer): void {
-      this.data = Buffer.concat([this.data, data]);
-    }
-
-    public raw = this.res;
-
-    /**
-     * Here you could track download progress.
-     * @param {OnDownloadProgressCallback} cb - Callback function for download progress 
-     */
-    public onDownload(cb: OnDownloadProgressCallback): void {
-      this.stream.on('data', (chunk) => {
-        cb(new Blob([this.data]).size, new Blob([chunk]).size);
-      });
-    }
-
-    /**
-     * Get buffer response data
-     */
-    public getData(): Buffer {
-      return this.data;
-    }
-    /**
-     * Get response content with encoding support.
-     * 
-     * @param encoding - Encoding content type you want. Like hex, baseurl, etc.
-     */
-    public getContent(encoding: BufferEncoding = 'utf8'): string {
-      return this.data.toString(encoding);
-    }
-    /**
-     * Get response content with JSON.parse
-     */
-    public async getJSON<T>(): Promise<T> {
-      return JSON.parse(this.getContent());
-    }
-    /**
-     * Get response headers
-     */
-    public get headers(): http.IncomingHttpHeaders {
-      return this.res.headers;
-    }
-    /**
-     * Is response ok?
-     */
-    public get isOk(): boolean {
-      return this.res.statusCode ? this.res.statusCode >= 200 && this.res.statusCode < 300 : false;
-    }
-    /**
-     * Get response status message
-     */
-    public get statusMessage(): string {
-      return this.res.statusMessage || '';
-    }
-    /**
-     * Get response status code like 200, 204, 403, 401, 301, etc.
-     */
-    public get statusCode(): number {
-      return this.res.statusCode || 200;
-    }
-
-    public get request(): Request {
-      const req = new Request(this.req);
-      req.setResponse(this);
-      return req;
-    }
-}
-
-/**
- * Pure HTTP Client Request
- * 
- * @param url - An URL want to send request
- * @param options - Client HTTP Options
- * @param handleResponse - A callback could handle your response.
- */
-export const getPureRequest = (url: URL | string, options = Util.jsonDefault<TinyHttpOptions>({
-  headers: {
-    'User-Agent': 'TinyHTTP'
-  },
-  method: 'GET',
-  timeout: 15 * 1000,
-}), handleResponse?: (res: http.IncomingMessage) => void, callbackReq?: (req: http.ClientRequest) => void): void => {
-  const protocol = Util.parseProtocol(url);
-  if (!protocol) throw new TypeError('Invalid URL');
-
-  if (typeof options.json === 'object') options.headers = {
-    ...options.headers,
-    'Content-Type': 'application/json',
-  };
-
-  const request = protocol.toLowerCase() === 'http'
-    ? http.request(url, { ...options, }, handleResponse && handleResponse) :
-    https.request(url, { ...options, }, handleResponse && handleResponse);
-  request.setTimeout(options.timeout as number || 15 * 1000);
-  request.on('timeout', () => {
-    request.destroy(timeoutError);
-  });
-  if (typeof options.json === 'object') request.write(JSON.stringify(options.json));
-  else if (typeof options.content === 'string') request.write(options.content);
-  callbackReq && callbackReq(request);
-  request.end();
-};
+import type {
+	TinyHttpOptions,
+	TinyHttpBase,
+	OmittedResponse
+} from './types';
 
 /**
  * Tiny HTTP Client Instance.
@@ -214,6 +29,10 @@ export const getPureRequest = (url: URL | string, options = Util.jsonDefault<Tin
  * ```
  */
 export class TinyHttpClient {
+	/**
+	 * Follow redirect instance.
+	 */
+   private followRedirect?: FollowRedirect;
   /**
      * 
      * @param clientOptions - Fill your option here
@@ -238,14 +57,17 @@ export class TinyHttpClient {
   })): Promise<OmittedResponse> {
     return await new Promise((resolve, reject) => {
       if (url.startsWith('/')) throw new TypeError('URL must-not start with slash');
-
-      const completeUrl = Util.resolveUri(url, this);
-      const followRedirect = new FollowRedirect(this);
+      
+      if (!this.followRedirect)
+		this.followRedirect = new FollowRedirect(this);
+	
       if (opts.maxRedirects && typeof opts.maxRedirects === 'number')
-        followRedirect.setMaxRedirects(opts.maxRedirects);
-      getPureRequest(completeUrl, opts, (res) => {
-        followRedirect.handle(resolve, reject, opts, res);
-      }, (req) => followRedirect.setPureRequest(req));
+        this.followRedirect?.setMaxRedirects(opts.maxRedirects);
+      getRawRequest(Util.resolveUri(url, this).href, opts, (res, reqUrl) => {
+        this.followRedirect?.handle(resolve, reject, opts, res, reqUrl);
+      });
+      
+      this.followRedirect = undefined;
     });
   }
 
@@ -273,19 +95,23 @@ export class TinyHttpClient {
   })): Promise<OmittedResponse> {
     return await new Promise((resolve, reject) => {
       if (url.startsWith('/')) throw new TypeError('URL must-not start with slash');
-      const completeUrl = Util.resolveUri(url, this);
       const postOpts: TinyHttpOptions = {
         ...opts,
         json: typeof body === 'object' ? body as Record<string, unknown> : undefined,
         content: typeof body === 'string' ? body as string : undefined,
         method: 'POST',
       };
-      const followRedirect = new FollowRedirect(this);
+      
+      if (!this.followRedirect)
+		this.followRedirect = new FollowRedirect(this);
+      
       if (opts.maxRedirects && typeof opts.maxRedirects === 'number')
-        followRedirect.setMaxRedirects(opts.maxRedirects);
-      getPureRequest(completeUrl, postOpts, (res) => {
-        followRedirect.handle(resolve, reject, opts, res);
-      }, (req) => followRedirect.setPureRequest(req));
+        this.followRedirect?.setMaxRedirects(opts.maxRedirects);
+      getRawRequest(Util.resolveUri(url, this).href, postOpts, (res, reqUrl) => {
+        this.followRedirect?.handle(resolve, reject, opts, res, reqUrl);
+      });
+      
+      this.followRedirect = undefined;
     });
   }
 
@@ -359,15 +185,14 @@ export class TinyHttpClient {
   }
 
   /**
-     * Handling response
+     * Handling response.
      * 
-     * @param req - ClientRequest
      * @param res - IncomingMessage Response
-     * @param resolveFunc - Resolve function
+     * @param resolveFunc - Resolve function.
      * @param rejectFunc - Reject function
      */
-  private handleMessage(req: http.ClientRequest, res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void, isStream = false): void {
-    const response = new Response(req, res);
+  public handleMessage(res: http.IncomingMessage, resolveFunc: (value: OmittedResponse) => void, rejectFunc: (reason?: unknown) => void, isStream = false): void {
+    const response = new Response(res);
     res.on('data', (chunk) => {
       response.addData(Buffer.from(chunk));
       response.stream.push(Buffer.from(chunk));
@@ -379,8 +204,6 @@ export class TinyHttpClient {
 
     if (isStream) resolveFunc(response);
   }
-
-    public _handle = this.handleMessage;
 }
 
 /**
@@ -389,3 +212,7 @@ export class TinyHttpClient {
 export const tinyHttp = new TinyHttpClient({
   baseURL: '',
 });
+
+export * from './types';
+export * from './http';
+
